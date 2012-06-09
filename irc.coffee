@@ -238,7 +238,7 @@ class IRC extends EventEmitter
 			for name,chan of @channels when norm_nick of chan.names
 				delete chan.names[norm_nick]
 				chan.names[new_norm_nick] = newNick
-				@emit 'message', chan, 'nick', from.nick, newNick
+				@emit 'message', name, 'nick', from.nick, newNick
 
 # Channels persist from when the user types /join to when they type /part.
 
