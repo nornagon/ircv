@@ -1,17 +1,18 @@
 {
-  "name": "ircv",
-  "description": "IRC inna platform app.",
-  "version": "1",
+  "name": "IRC for Chrome",
+  "description": "An IRC client for Chrome",
+  "version": "0.2",
   "manifest_version": 2,
-  "platform_app": true,
   "permissions": [
     "experimental",
-    "socket",
     "windows",
-    "storage"
+    "storage",
+    "tabs"
   ],
-  "background": {
-    "scripts": ["background.js"]
+  "app": {
+    "launch": {
+      "local_path": "src/main.html"
+    }
   },
-  "icons": { "16": "icon16.png", "48": "icon48.png", "128": "icon128.png" }
+  "icons": { "16": "icon/icon16.png", "48": "icon/icon48.png", "128": "icon/icon128.png" }
 }
