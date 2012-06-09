@@ -51,9 +51,9 @@ class IRC5
 		@connections = {}
 		# { 'freenode': { irc: irc.IRC, windows: {Window} } }
 
-	disconnect: ->
-		# TODO
-		#@irc.quit 'App closing.'
+	quit: ->
+		for name,conn of @connections
+			conn.irc.socket.end()
 
 	connect: (server, port = 6667) ->
 		name = server # TODO: 'irc.freenode.net' -> 'freenode'
@@ -95,11 +95,15 @@ class IRC5
 			win = conn.windows[target]
 			if win
 				handlers[type].apply win, args
+				@status()
 			else
 				@systemWindow.message conn.name, "unknown message: #{target}(#{type}): #{JSON.stringify args}"
 				console.warn "unknown message to "+conn.name,target,type,args
 		else
 			system_handlers[type].apply @systemWindow, [conn].concat(args)
+
+	onStatus: (status) ->
+		null
 
 	handlers =
 		join: (nick) ->
@@ -135,7 +139,7 @@ class IRC5
 	status: (status) ->
 		if !status
 			status = "[#{@currentWindow.conn?.irc.nick}] #{@currentWindow.target}"
-		$('#status').text(status)
+		@onStatus(status)
 
 	switchToWindow: (win) ->
 		if @currentWindow
@@ -171,6 +175,8 @@ class IRC5
 				conn.irc.send 'NICK', newNick
 		connect: (server, port) ->
 			@connect server, if port then parseInt port
+		quit: ->
+			@quit()
 		dc: ->
 			if conn = @currentWindow.conn
 				conn.irc.socket.end()
@@ -216,6 +222,9 @@ class Window
 			@$container.scrollTop(@$container[0].scrollHeight)
 
 irc5 = new IRC5
+irc5.onStatus = (status) ->
+  $('#status').text(status)
+  window.document.title = status
 
 $cmd = $('#cmd')
 $cmd.focus()
@@ -234,4 +243,8 @@ $cmd.keydown (e) ->
 			irc5.command cmd
 
 window.onbeforeunload = ->
-	irc5.disconnect()
+	if Object.keys(irc5.connections).length > 0
+		"You have IRC connections open."
+
+window.onunload = ->
+	irc5.quit()
