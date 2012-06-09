@@ -11,8 +11,8 @@
   ],
   "app": {
     "launch": {
-      "local_path": "main.html"
+      "local_path": "static/main.html"
     }
   },
-  "icons": { "16": "icon16.png", "48": "icon48.png", "128": "icon128.png" }
+  "icons": { "16": "static/icon16.png", "48": "static/icon48.png", "128": "static/icon128.png" }
 }
