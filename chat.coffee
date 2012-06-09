@@ -184,6 +184,8 @@ class IRC5
 			if (conn = @currentWindow.conn) and (target = @currentWindow.target) and (names = conn.irc.channels[target]?.names)
 				names = (v for k,v of names).sort()
 				@currentWindow.message '', JSON.stringify names
+		help: ->
+			@currentWindow.message '', "Available commands: " + Object.keys(commands).join(' ')
 	}
 
 	command: (text) ->
