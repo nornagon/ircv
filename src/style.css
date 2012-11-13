@@ -1,0 +1,336 @@
+body {
+  color: #505053;
+  font-size: 14px;
+  font-family: "Roboto";
+  margin: 0;
+}
+
+.hidden {
+  display: none;
+}
+
+#templates {
+  display: none;
+}
+
+ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.content-item {
+  white-space: nowrap;
+  overflow-x: hidden;
+  text-overflow: ellipsis;
+}
+
+.monospace {
+  font-family: "monospace"
+}
+
+#main {
+  display: -webkit-box;
+  -webkit-box-orient: horizontal;
+  width: 100%;
+  height: 100%;
+}
+
+#rooms-and-nicks {
+  background-color: #F7F5E4;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-box-flex: 0;
+  width: 150px;
+  padding: 4px 0px;
+  border-right: 1px solid rgba(0, 0, 0, .15);
+  overflow-y: auto;
+}
+
+#rooms-and-nicks h1 {
+  color: #406698;
+  text-transform: uppercase;
+  font-size: 12px;
+  padding: 8px 0px 2px 8px;
+  margin: 0px;
+}
+
+#rooms-and-nicks .nick,
+#rooms-and-nicks .room {
+  padding: 0 8px;
+  line-height: 26px;
+}
+
+#rooms-and-nicks .room {
+  cursor: pointer;
+}
+
+#rooms-container {
+  -webkit-box-flex: 0;
+  border-bottom: 1px solid #CCC;
+  padding-bottom: 10px;
+}
+
+.no-nicks #rooms-container {
+  border-bottom-style: none;
+  padding-bottom: 0px;
+}
+
+#rooms-and-nicks .room.server {
+  background-color: #F2EFD3;
+}
+
+#rooms-and-nicks .room.channel:first-child {
+  padding-top: 3px;
+}
+
+#rooms-and-nicks .room.channel:first-child .content-item {
+  padding-bottom: 3px;
+  line-height: 20px;
+}
+
+#rooms-and-nicks .room.channel:last-child {
+  padding-bottom: 3px;
+}
+
+#rooms-and-nicks .room.channel:last-child .content-item {
+  padding-top: 3px;
+  line-height: 20px;
+}
+
+#rooms-and-nicks .room.channel:last-child:first-child .content-item {
+  line-height: 14px;
+}
+
+#rooms-and-nicks .room.channel .content-item {
+  border-left: 1px solid rgba(0, 0, 0, .5);
+  padding-left: 7px;
+}
+
+#rooms-and-nicks .room.activity {
+  font-weight: bold;
+}
+
+#rooms-and-nicks .room.mention {
+  color: darkred;
+}
+
+#rooms-and-nicks .room.disconnected .content-item {
+  color: #9493A2;
+  font-style: italic;
+}
+
+#rooms-and-nicks .room.channel.disconnected .content-item {
+  border-left: 1px solid #9493A2;
+}
+
+#rooms-and-nicks .room.selected {
+  background-color: #F0E798;
+}
+
+#nicks-container {
+  border-top: 1px solid #FFF;
+  -webkit-box-flex: 1;
+}
+
+.no-nicks #nicks-container {
+  display: none;
+}
+
+.rooms,
+.nicks {
+  padding-top: 5px;
+}
+
+.nicks li:nth-child(odd) {
+  background-color: #F2EFD3;
+}
+
+#notice {
+  background-color: #406698;
+  box-shadow: 0px 1px 4px #888;
+  color: #FFF;
+  position: absolute;
+  width: 100%;
+  -webkit-transition: 150ms;
+  top: -35px;
+}
+
+#notice .content {
+  display: inline;
+  padding-left: 14px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow-x: hidden;
+  position: absolute;
+  top: 50%;
+  margin-top: -.5em;
+}
+
+#notice button {
+  float: right;
+  height: 22px;
+  font-family: "Roboto";
+  font-size: 14px;
+  padding: 0px 4px;
+  margin: 4px;
+  border: none;
+  background-color: #ECECEC;
+  color: #505053;
+  cursor: pointer;
+}
+
+#notice button.close {
+  margin-right: 8x;
+  font-size: 12;
+  border-radius: 42px;
+  width: 21px;
+  height: 21px;
+}
+
+#messages-and-input {
+  -webkit-box-flex: 1;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  box-shadow: 0px 0px 8px #CCC;
+  position: relative;
+}
+
+#messages-container {
+  overflow-y: auto;
+  -webkit-box-flex: 1;
+  border-bottom: 1px solid #CCC;
+}
+
+.messages {
+  display: table;
+}
+
+.message {
+  display: table-row;
+  -webkit-user-select: initial;
+}
+
+.message.activity-marker .source,
+.message.activity-marker .content {
+  border-top: 1px solid rgb(224, 179, 179);
+}
+
+.message .source {
+  font-weight: bold;
+  padding-right: 20px;
+  white-space: nowrap;
+  display: table-cell;
+  text-align: right;
+  padding-left: 14px;
+}
+
+.message .source.empty {
+  padding-right: 0;
+}
+
+.message .content {
+  display: table-cell;
+  padding: 4px 14px 4px 0px;
+  white-space: pre-wrap;
+  width: 100%;
+}
+
+#messages-container .messages .message:last-child .content {
+  padding-bottom: 8px;
+}
+
+#messages-container .messages .message:first-child .content {
+  padding-top: 10px;
+}
+
+.message:not(.privmsg) + .message.privmsg .content {
+  padding-top: 4px;
+  padding-bottom: 1px;
+}
+.message.privmsg + .message.privmsg .content {
+  padding-top: 1px;
+  padding-bottom: 1px;
+}
+.message.privmsg .content {
+  padding-bottom: 4px;
+}
+
+.message:not(.group) + .message.group .content {
+  padding-top: 4px;
+  padding-bottom: 1px;
+}
+.message.group + .message.group .content {
+  padding-top: 0px;
+  padding-bottom: 0px;
+}
+.message.group .content {
+  padding-bottom: 4px;
+}
+
+.message:not(.notice-group) + .message.notice-group .content {
+  padding-top: 4px;
+  padding-bottom: 1px;
+}
+.message.notice-group + .message.notice-group .content {
+  padding-top: 0px;
+  padding-bottom: 0px;
+}
+.message.notice-group .content {
+  padding-bottom: 4px;
+}
+
+.longword { word-break: break-all; }
+
+#status-and-input {
+  border-top: 1px solid #F9F9F9;
+  -webkit-box-flex: 0;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  background-color: #ECECEC;
+  padding: 0px 14px 12px 14px;
+}
+
+#status {
+  -webkit-box-flex: 0;
+  padding: 8px 0px;
+}
+
+#status span {
+  padding-right: 10px;
+}
+
+#status .nick:before {
+  font-weight: bold;
+  content: "[ "
+}
+#status .nick:after {
+  font-weight: bold;
+  content: " ]"
+}
+
+#status .away:before {
+  content: "("
+}
+#status .away:after {
+  content: ")"
+}
+
+#status .topic {
+  font-style: italic;
+}
+
+#input {
+  background-color: #F9F9F9;
+  -webkit-box-flex: 1;
+  width: 100%;
+  height: 30px;
+  border: 1px;
+  border-radius: 5px;
+  -webkit-box-shadow: 0px 0px 3px #888;
+  color: #505053;
+  font-size: 14px;
+  font-family: "Roboto";
+  padding: 0px 8px;
+  outline: 0;
+}
