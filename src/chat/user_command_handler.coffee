@@ -22,23 +22,20 @@ class UserCommandHandler extends MessageHandler
         @handle e.name, e, e.args...
 
   handle: (type, context, args...) ->
-    command = @_handlers[type]
-    if not command then return super type, context, args...
-
-    if not command.canRun @chat, context
-      if command.name isnt 'say' and command.win isnt window.chat.NO_WINDOW
-        @_displayHelpForCommand command
+    if not @_isValidUserCommand type
+      # the command must be a developer command
+      super type, context, args...
       return
+    command = @_handlers[type]
+    command.tryToRun context, args...
 
-    command.setArgs args...
-    if command.hasValidArgs()
-      command.run()
-    else
-      @_displayHelpForCommand command
+  _isValidUserCommand: (type) ->
+    type of @_handlers
 
-  _displayHelpForCommand: (command) ->
-    command.win.message '', command.getHelp(), 'notice help'
-
+  ##
+  # Creates all user commands. The "this" parameter in the run() and
+  # parseArgs() functions is {UserCommand}.
+  ##
   _init: ->
     @_addCommand 'join',
       description: 'joins the channel, the current channel is used by default'
@@ -83,6 +80,8 @@ class UserCommandHandler extends MessageHandler
     @_addCommand 'nick',
       description: 'sets your nick'
       params: ['nick']
+      parseArgs: ->
+        @nick = html.escape @nick
       run: ->
         @chat.setNick @conn?.name, @nick
 
@@ -127,7 +126,7 @@ class UserCommandHandler extends MessageHandler
       run: ->
         @command = @chat.userCommands.getCommand @command
         if @command
-          @win.message '', @command.getHelp(), 'notice help'
+          @command.displayHelp()
         else
           commands = @chat.userCommands.getCommands()
           @win.messageRenderer.displayHelp commands
@@ -321,10 +320,33 @@ class UserCommandHandler extends MessageHandler
         for addr in connectionInfo.possibleAddrs
           @displayMessageWithStyle 'notice', "    #{addr}", 'no-pretty-format'
 
+    @_addCommand 'autostart',
+      description: "sets whether the application will run on startup, " +
+          "toggles if no arguments are given"
+      usage: '[ON|OFF]'
+      params: ['opt_state']
+      parseArgs: ->
+        unless @state
+          @enabled = undefined
+          return true
+        @state = @state.toLowerCase()
+        return false unless @state is 'on' or @state is 'off'
+        @enabled = @state is 'on'
+        true
+      run: ->
+        willAutostart = @chat.storage.setAutostart @enabled
+        if willAutostart
+          @displayMessage 'notice', "CIRC will now automatically " +
+              "run on startup"
+        else
+          @displayMessage 'notice', "CIRC will no longer " +
+              "automatically run on startup"
+
   _addCommand: (name, commandDescription) ->
     command = new chat.UserCommand name, commandDescription
     commandToExtend = @_handlers[commandDescription.extends]
     command.describe commandToExtend.description if commandToExtend
+    command.setChat @chat
     @_handlers[name] = command
 
 exports.UserCommandHandler = UserCommandHandler
