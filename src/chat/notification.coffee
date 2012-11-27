@@ -19,25 +19,26 @@ class Notification extends EventEmitter
         @_message
 
   _addOnClickListener: ->
-    @notification.onclick = =>
+    @notification?.onclick = =>
       @cancel()
       @emit 'clicked'
 
   delete: ->
-    @notification.onclick = null
+    @notification?.onclick = null
     delete @notification
 
   ##
   # Display the notification.
   ##
   show: ->
-    @notification.show()
+    chrome.app.window.current().drawAttention()
+    @notification?.show()
 
   ##
   # Close the notification.
   ##
   cancel: ->
-    @notification.cancel()
+    @notification?.cancel()
 
   ##
   # Used as a hash function for notifications.

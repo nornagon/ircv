@@ -43,7 +43,7 @@ class Chat extends EventEmitter
   _initializeStorage: ->
     @storage = new chat.Storage
     @remoteConnectionHandler.setStorageHandler @storage
-    @storage.loadConnectionInfo this
+    @storage.init this
 
   setPassword: (password) ->
     @remoteConnection.setPassword password
@@ -266,7 +266,7 @@ class Chat extends EventEmitter
     topic = @currentWindow.conn?.irc.channels[channel]?.topic
     statusList.push "<span class='nick'>#{nick}</span>" if nick
     statusList.push "<span class='away'>away</span>" if away
-    statusList.push "<span class='topic'>#{topic}</span>" if topic
+    statusList.push "<span class='topic'>#{html.display topic}</span>" if topic
     $('#status').html(statusList.join '')
     @_updateDocumentTitle()
 
