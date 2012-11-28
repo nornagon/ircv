@@ -6,67 +6,40 @@ exports = (window.chat ?= {}).window ?= {}
 ##
 class MessageRenderer
 
-  @PROJECT_URL = "noahsug.github.com/circ"
+  @PROJECT_URL: "http://noahsug.github.com/circ"
 
   constructor: (@win) ->
-    @_resetActivityMarker = false
+    @_userSawMostRecentMessage = false
     @_activityMarkerLocation = undefined
+    @_helpMessageRenderer = new exports.HelpMessageRenderer @systemMessage
 
   onFocus: ->
-    @_resetActivityMarker = @win.$messages.children().length > 0
+    @_userSawMostRecentMessage = @win.$messages.children().length > 0
 
   displayWelcome: ->
-    @message()
-    @message '', "Welcome to CIRC, a packaged Chrome app.", "system"
-    @message '', @_getWebsiteBlurb(), 'system'
-    @message '', "Type /server <server> [port] to connect, then /nick " +
-        "<my_nick> and /join <#channel>.", "system"
-    @message '', "Type /help to see a full list of commands.", "system"
-    @message '', "Switch windows with alt+[0-9] or click in the channel " +
-        "list on the left.", "system"
+    @_addWhitespace()
+    @systemMessage "Welcome to CIRC!"
+    @systemMessage @_getWebsiteBlurb()
 
+  ##
+  # Display available commands, grouped by category.
+  # @param {Object.<string: {category: string}>} commands
+  ##
   displayHelp: (commands) ->
-    @message()
-    @message '', "Commands Available:", 'notice help'
-    @_printCommands commands
-    @message '', "Type /help <command> to see details about a specific command.",
-        'notice help'
-    @message '', @_getWebsiteBlurb(), 'notice help'
+    @_helpMessageRenderer.render commands
 
   displayAbout: ->
-    @message()
-    @message '', "CIRC is a packaged Chrome app developed by Google Inc. " +
+    @_addWhitespace()
+    @systemMessage "CIRC is a packaged Chrome app developed by Google Inc. " +
         @_getWebsiteBlurb(), 'notice about'
-    @message '', "Version: #{irc.VERSION}", 'notice about'
-    @message '', "Contributors:", 'notice about group'
-    @message '', "    * UI mocks by Fravic Fernando (fravicf@gmail.com)", 'notice about group'
+    @systemMessage "Version: #{irc.VERSION}", 'notice about'
+    @systemMessage "Contributors:", 'notice about group'
+    @systemMessage "    * UI mocks by Fravic Fernando (fravicf@gmail.com)",
+        'notice about group'
 
   _getWebsiteBlurb: ->
     "Documentation, issues and source code live at " +
         "#{MessageRenderer.PROJECT_URL}."
-
-  _printCommands: (commands) ->
-    maxWidth = 40
-    style = 'notice help monospace group'
-    widthPerCommand = @_getMaxCommandWidth commands
-    commandsPerLine = maxWidth / Math.floor widthPerCommand
-    line = []
-    for command, i in commands
-      line.push @_fillWithWhiteSpace command, widthPerCommand
-      if line.length >= commandsPerLine or i >= commands.length - 1
-        @message '', line.join('  '), style
-        line = []
-
-  _getMaxCommandWidth: (commands) ->
-    maxWidth = 0
-    for command in commands
-      if command.length > maxWidth
-        maxWidth = command.length
-    maxWidth
-
-  _fillWithWhiteSpace: (command, maxCommandWidth) ->
-    space = (' ' for i in [0..maxCommandWidth-1]).join ''
-    return command + space.slice 0, maxCommandWidth - command.length
 
   message: (from='', msg='', style...) ->
     wasScrolledDown = @win.isScrolledDown()
@@ -76,7 +49,13 @@ class MessageRenderer
     @_addMessage from, msg, style
     if wasScrolledDown
       @win.scrollToBottom()
-    @_displayActivityMarker() if @_shouldDisplayActivityMarker()
+    @_updateActivityMarker() if @_shouldUpdateActivityMarker()
+
+  ##
+  # Display a system message to the user. A system message has no from field.
+  ##
+  systemMessage: (msg='', style='system') =>
+    @message '', msg, style
 
   _addMessage: (from, msg, style) ->
     message = $('#templates .message').clone()
@@ -87,11 +66,18 @@ class MessageRenderer
     @win.emit 'message', @win.getContext(), style, message[0].outerHTML
     @win.$messages.append message
 
-  _shouldDisplayActivityMarker: ->
-    return not @win.isFocused() and @_resetActivityMarker
+  _addWhitespace: ->
+    @message()
 
-  _displayActivityMarker: ->
-    @_resetActivityMarker = false
+  ##
+  # Update the activity marker when the user has seen the most recent messages
+  # and then received a message while the window wasn't focused.
+  ##
+  _shouldUpdateActivityMarker: ->
+    return not @win.isFocused() and @_userSawMostRecentMessage
+
+  _updateActivityMarker: ->
+    @_userSawMostRecentMessage = false
     if @_activityMarkerLocation
       @_activityMarkerLocation.removeClass 'activity-marker'
     @_activityMarkerLocation = @win.$messages.children().last()

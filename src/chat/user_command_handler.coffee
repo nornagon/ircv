@@ -11,7 +11,7 @@ class UserCommandHandler extends MessageHandler
     super
 
   getCommands: ->
-    Object.keys @_handlers
+    @_handlers
 
   getCommand: (command) ->
     @_handlers[command]
@@ -34,20 +34,46 @@ class UserCommandHandler extends MessageHandler
 
   ##
   # Creates all user commands. The "this" parameter in the run() and
-  # parseArgs() functions is {UserCommand}.
+  # validateArgs() functions is UserCommand.
+  # @this {UserCommand}
   ##
   _init: ->
+    @_addCommand 'nick',
+      description: 'sets your nick'
+      category: 'common'
+      params: ['nick']
+      validateArgs: ->
+        @nick = html.escape @nick
+      run: ->
+        @chat.setNick @conn?.name, @nick
+
+    @_addCommand 'server',
+      description: 'connects to the server, port 6667 is used by default, ' +
+          "reconnects to the current server if no server is specified"
+      category: 'common'
+      params: ['opt_server', 'opt_port']
+      requires: ['online']
+      validateArgs: ->
+        @port ?= parseInt(@server) || 6667
+        @port = parseInt(@port)
+        @server ?= @conn?.name
+        return @port and @server
+      run: ->
+        @chat.connect @server, @port
+
     @_addCommand 'join',
       description: 'joins the channel, the current channel is used by default'
+      category: 'common'
       params: ['opt_channel']
       requires: ['connection']
-      parseArgs: ->
+      validateArgs: ->
         @channel ?= @chan
       run: ->
         @chat.join @conn, @channel
 
     @_addCommand 'part',
       description: "closes the current window and disconnects from the channel"
+      category: 'common'
       params: ['opt_reason...']
       requires: ['connection', 'channel']
       run: ->
@@ -57,14 +83,16 @@ class UserCommandHandler extends MessageHandler
 
     @_addCommand 'win',
       description: 'switches windows'
+      category: 'misc'
       params: ['windowNum']
-      parseArgs: ->
+      validateArgs: ->
         @windowNum = parseInt @windowNum
       run: ->
         @chat.switchToWindowByIndex @windowNum
 
     @_addCommand 'say',
       description: 'sends text to the current channel'
+      category: 'uncommon'
       params: ['text...']
       requires: ['connection', 'channel', 'connected']
       run: ->
@@ -73,36 +101,14 @@ class UserCommandHandler extends MessageHandler
 
     @_addCommand 'me',
       description: 'sends text to the current channel, spoken in the 3rd person'
+      category: 'uncommon'
       extends: 'say'
-      parseArgs: ->
+      validateArgs: ->
         @text = "\u0001ACTION #{@text}\u0001"
-
-    @_addCommand 'nick',
-      description: 'sets your nick'
-      params: ['nick']
-      parseArgs: ->
-        @nick = html.escape @nick
-      run: ->
-        @chat.setNick @conn?.name, @nick
-
-    @_addCommand 'server',
-      description: 'connects to the server, port 6667 is used by default, ' +
-          "reconnects to the current server if no server is specified"
-      params: ['opt_server', 'opt_port']
-      requires: ['online']
-      parseArgs: ->
-        @port ?= parseInt(@server) || 6667
-        @port = parseInt(@port)
-        @server ?= @conn?.name
-        return @port and @server
-      run: ->
-        @chat.connect @server, @port
-
-    @_addCommand 'connect',
-      extends: 'server'
 
     @_addCommand 'quit',
       description: 'disconnects from the current server'
+      category: 'common'
       params: ['opt_reason...']
       requires: ['connection']
       run: ->
@@ -110,6 +116,7 @@ class UserCommandHandler extends MessageHandler
 
     @_addCommand 'names',
       description: 'lists nicks in the current channel'
+      category: 'uncommon'
       requires: ['connection', 'channel', 'connected']
       run: ->
         if @win.isPrivate()
@@ -122,11 +129,12 @@ class UserCommandHandler extends MessageHandler
     @_addCommand 'help',
       description: "displays information about a command, lists all commands " +
           "if no command is specified"
+      category: 'misc'
       params: ["opt_command"]
       run: ->
         @command = @chat.userCommands.getCommand @command
         if @command
-          @command.displayHelp()
+          @command.displayHelp @win
         else
           commands = @chat.userCommands.getCommands()
           @win.messageRenderer.displayHelp commands
@@ -134,10 +142,11 @@ class UserCommandHandler extends MessageHandler
     @_addCommand 'raw',
       description: "sends a raw event to the IRC server, use the -c flag to " +
           "make the command apply to the current channel"
+      category: 'uncommon'
       params: ['command', 'opt_args...']
       usage: '<command> [-c] [arguments...]'
       requires: ['connection']
-      parseArgs: ->
+      validateArgs: ->
         @args = if @args then @args.split ' ' else []
       run: ->
         command = chat.customCommandParser.parse @chan, @command, @args...
@@ -145,6 +154,7 @@ class UserCommandHandler extends MessageHandler
 
     @_addCommand 'load',
       description: "loads a script by opening a file browser dialog"
+      category: 'misc'
       run: ->
         script.loader.createScriptFromFileSystem (script) =>
           @chat.emit 'script_loaded', script
@@ -152,6 +162,7 @@ class UserCommandHandler extends MessageHandler
     @_addCommand 'topic',
       description: "sets the topic of the current channel, displays the " +
           "current topic if no topic is specified"
+      category: 'uncommon'
       params: ['opt_topic...']
       requires: ['connection', 'channel']
       run: ->
@@ -159,6 +170,7 @@ class UserCommandHandler extends MessageHandler
 
     @_addCommand 'kick',
       description: "removes the nick from the current channel"
+      category: 'uncommon'
       params: ['nick', 'opt_reason...']
       requires: ['connection', 'channel']
       run: ->
@@ -168,9 +180,10 @@ class UserCommandHandler extends MessageHandler
       # TODO when used with no args, display current modes
       description: "sets the mode for the given user, your nick is used if " +
           "no nick is specified"
+      category: 'uncommon'
       params: ['opt_nick', 'mode']
       requires: ['connection']
-      parseArgs: ->
+      validateArgs: ->
         @nick ?= @conn.irc.nick
       run: ->
         if @isOwnNick() and @mode in ['+o', '+O', '-r']
@@ -184,32 +197,33 @@ class UserCommandHandler extends MessageHandler
       description: "gives operator status"
       params: ['nick']
       extends: 'mode'
-      parseArgs: -> @mode = '+o'
+      validateArgs: -> @mode = '+o'
 
     @_addCommand 'deop',
       description: "removes operator status"
       params: ['nick']
       extends: 'mode'
-      parseArgs: -> @mode = '-o'
+      validateArgs: -> @mode = '-o'
 
     @_addCommand 'voice',
       description: "gives voice"
       params: ['nick']
       extends: 'mode'
-      parseArgs: -> @mode = '+v'
+      validateArgs: -> @mode = '+v'
 
     @_addCommand 'devoice',
       description: "removes voice"
       params: ['nick']
       extends: 'mode'
-      parseArgs: -> @mode = '-v'
+      validateArgs: -> @mode = '-v'
 
     @_addCommand 'away',
       description: "sets your status to away, a response is " +
           "automatically sent when people /msg or WHOIS you"
+      category: 'uncommon'
       params: ['opt_response...']
       requires: ['connection']
-      parseArgs: ->
+      validateArgs: ->
         unless stringHasContent @response
           @response = "I'm currently away from my computer"
         true
@@ -218,11 +232,13 @@ class UserCommandHandler extends MessageHandler
 
     @_addCommand 'back',
       description: "sets your status to no longer being away"
+      category: 'uncommon'
       requires: ['connection']
       run: -> @conn.irc.doCommand 'AWAY', @response
 
     @_addCommand 'msg',
       description: "sends a private message"
+      category: 'common'
       params: ['nick', 'message...']
       requires: ['connection']
       run: ->
@@ -231,6 +247,7 @@ class UserCommandHandler extends MessageHandler
 
     @_addCommand 'about',
       description: "displays information about this IRC client"
+      category: 'misc'
       run: ->
         @win.messageRenderer.displayAbout()
 
@@ -239,9 +256,10 @@ class UserCommandHandler extends MessageHandler
           "to be logged in with the same nick on multiple devices. " +
           "Connects to the device that called /make-server if no arguments " +
           "are given"
+      category: 'one_identity'
       requires: ['online']
       params: ['opt_addr', 'opt_port']
-      parseArgs: ->
+      validateArgs: ->
         parsedPort = parseInt(@port)
         return false if (@port || @addr) and not (parsedPort || @addr)
         connectInfo = @chat.storage.serverDevice
@@ -265,6 +283,7 @@ class UserCommandHandler extends MessageHandler
     @_addCommand 'make-server',
       description: "makes this device a server to which other devices can " +
           "connect. Connected devices use the IRC connection of this device"
+      category: 'one_identity'
       requires: ['online']
       run: ->
         state = @chat.remoteConnection.getState()
@@ -290,6 +309,7 @@ class UserCommandHandler extends MessageHandler
     @_addCommand 'network-info',
       description: "displays network information including " +
           "port, ip address and remote connection status"
+      category: 'one_identity'
       run: ->
         @displayMessage 'breakgroup'
         if @chat.remoteConnection.isServer()
@@ -323,9 +343,10 @@ class UserCommandHandler extends MessageHandler
     @_addCommand 'autostart',
       description: "sets whether the application will run on startup, " +
           "toggles if no arguments are given"
+      category: 'misc'
       usage: '[ON|OFF]'
       params: ['opt_state']
-      parseArgs: ->
+      validateArgs: ->
         unless @state
           @enabled = undefined
           return true

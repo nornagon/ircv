@@ -46,7 +46,7 @@ class RemoteConnectionHandler
   setStorageHandler: (storage) ->
     @_storage = storage
     @_remoteConnection.setIRCStateFetcher =>
-      @_storage.getState @_chat
+      @_storage.getState()
     @_remoteConnection.setChatLogFetcher =>
       @_chat.messageHandler.getChatLog()
 
@@ -105,7 +105,7 @@ class RemoteConnectionHandler
       @_storage.pause()
       @_chat.closeAllConnections()
       @_stopServerReconnectAttempts()
-      @_storage.loadState @_chat, state
+      @_storage.loadState state
 
     @_remoteConnection.on 'chat_log', (chatLog) =>
       @_chat.messageHandler.replayChatLog chatLog
@@ -170,22 +170,31 @@ class RemoteConnectionHandler
 
   _useServerDeviceConnection: ->
     clearTimeout @_useOwnConnectionTimeout
-    usingServerDeviceConnection = @_remoteConnection.getState() in ['connected', 'connecting']
-    sameConnection = @_remoteConnection.serverDevice?.usesConnection @_storage.serverDevice
-    return if usingServerDeviceConnection and sameConnection
+    return if @_alreadyConnectedToServerDevice()
     @_log 'automatically connecting to', @_storage.serverDevice
     if @_remoteConnection.isInitializing()
-      @_useOwnConnectionTimeout = setTimeout(
-          @_useOwnConnectionWhileWaitingForServer,
-          RemoteConnectionHandler.SERVER_DEVICE_CONNECTION_WAIT)
+      @_useOwnConnectionIfServerTakesTooLong()
     @_remoteConnection.connectToServer @_storage.serverDevice
+
+  _alreadyConnectedToServerDevice: ->
+    usingServerDeviceConnection = @_remoteConnection.getState() in
+        ['connected', 'connecting']
+    isCurrentServerDevice = @_remoteConnection.serverDevice?.usesConnection(
+        @_storage.serverDevice)
+    return usingServerDeviceConnection and isCurrentServerDevice
+
+  _useOwnConnectionIfServerTakesTooLong: ->
+    @_useOwnConnectionTimeout = setTimeout =>
+      @_useOwnConnectionWhileWaitingForServer()
+    , RemoteConnectionHandler.SERVER_DEVICE_CONNECTION_WAIT
 
   _tryToReconnectToServerDevice: ->
     clearTimeout @_serverDeviceReconnectTimeout
     @_serverDeviceReconnectBackoff ?=
         RemoteConnectionHandler.SERVER_DEVICE_RECONNECTION_WAIT
-    @_serverDeviceReconnectTimeout = setTimeout @_reconnect,
-        @_serverDeviceReconnectBackoff
+    @_serverDeviceReconnectTimeout = setTimeout =>
+      @_reconnect()
+    , @_serverDeviceReconnectBackoff
 
   _reconnect: =>
     @_reconnectionAttempt = true
@@ -205,7 +214,7 @@ class RemoteConnectionHandler
   _useOwnConnectionWhileWaitingForServer: =>
     return unless @_remoteConnection.isInitializing()
     @_remoteConnection.becomeIdle()
-    connectInfo = @_chat.storage.serverDevice
+    connectInfo = @_storage.serverDevice
     @_onConnected = =>
       @_displayFailedToConnect connectInfo
     @_resumeIRCConnection()
@@ -273,10 +282,11 @@ class RemoteConnectionHandler
     @_timer.start 'started_connection'
     @_log 'resuming IRC conn'
     @_chat.closeAllConnections()
-    @_storage.restoreSavedState @_chat, =>
+    @_storage.restoreSavedState =>
       @_chat.messageHandler.replayChatLog()
       @_storage.resume()
-      @_onConnected() if @_onConnected
+      @_onConnected?()
       @_onConnected = undefined
+      @_chat.startWalkthrough() unless @_storage.completedWalkthrough
 
 exports.RemoteConnectionHandler = RemoteConnectionHandler

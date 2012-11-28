@@ -7,14 +7,14 @@ class UserCommand
   constructor: (name, @description) ->
     @name = name
     @describe @description
-    @_validArgs = false
+    @_hasValidArgs = false
 
   ##
   # Describe the command using the following format:
   # * description - a description of what the command does; used with /help
   # * params - what parameters the command takes, 'opt_<name>' for optional,
   #       '<name>...' for variable
-  # * parseArgs - a function that parses the args and checks for validity
+  # * validateArgs - returns a truthy variable if the given arguments are valid.
   # * requires - what the command requires to run (e.g. a connections to an IRC server)
   # * usage - manually set a usage message, one will be generated if not specified
   # * run - the function to call when the command is run
@@ -23,9 +23,10 @@ class UserCommand
     @_description ?= description.description
     @_params ?= description.params
     @_requires ?= description.requires
-    @_parseArgs ?= description.parseArgs
+    @_validateArgs ?= description.validateArgs
     @_usage ?= description.usage
     @run ?= description.run
+    @category ?= description.category
 
   ##
   # Try running the command. A command can fail to run if its requirements
@@ -42,7 +43,7 @@ class UserCommand
       return
 
     @setArgs args...
-    if @hasValidArgs()
+    if @_hasValidArgs
       @run()
     else
       @displayHelp()
@@ -56,8 +57,8 @@ class UserCommand
       @chan = @win.target
 
   setArgs: (args...) ->
-    @_validArgs = @_tryToAssignArgs args
-    @_validArgs = !!@_parseArgs() if @_validArgs and @_parseArgs
+    @_hasValidArgs = @_tryToAssignArgs(args) and
+        (not @_validateArgs or !!@_validateArgs())
 
   _tryToAssignArgs: (args) ->
     @_removeTrailingWhiteSpace args
@@ -132,11 +133,8 @@ class UserCommand
       when 'channel' then !!@chan
       else @conn?.irc.state is requirement
 
-  hasValidArgs: ->
-    @_validArgs
-
-  displayHelp: ->
-    @win.message '', @getHelp(), 'notice help'
+  displayHelp: (win=@win) ->
+    win.message '', @getHelp(), 'notice help'
 
   getHelp: ->
     descriptionText = if @_description then ", #{@_description}" else ''
